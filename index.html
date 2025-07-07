@@ -112,6 +112,7 @@
       </select>
     </label><br>
     <button onclick="submitHighScore()">Submit</button>
+    <button onclick="continueGame()">Continue</button>
   </div>
 
   <!-- Firebase SDK with ES Modules -->
@@ -427,7 +428,7 @@
         getHighscores();
         submissionForm.classList.add('hidden');
         alert("Score submitted successfully!");
-        resetGame();
+        // resetGame(); // Removed to allow continue option
       }).catch(error => {
         console.error("Error saving score:", error);
         alert("Error saving score: " + error.message);
@@ -462,12 +463,22 @@
       document.getElementById('allTimeHard').innerHTML = allTimeScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('');
     }
 
+    // Continue game from current score
+    function continueGame() {
+      submissionForm.classList.add('hidden');
+      startTurn();
+    }
+
     // Expose functions to global scope for onclick events
     window.startTurn = startTurn;
     window.submitScore = submitScore;
     window.resetGame = resetGame;
     window.submitHighScore = submitHighScore;
     window.getHighscores = getHighscores;
+    window.continueGame = continueGame;
+
+    // Initial draw
+    drawDartboard();
   </script>
 </body>
 </html>
