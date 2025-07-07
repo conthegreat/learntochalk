@@ -114,7 +114,39 @@
     <button onclick="submitHighScore()">Submit</button>
   </div>
 
-  <script>
+  <!-- Firebase SDK with ES Modules -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
+    import { getDatabase } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTidIF53SjPRXHncIFy1bFWfbpmp1y6wc",
+      authDomain: "chalktrainer.firebaseapp.com",
+      databaseURL: "https://chalktrainer-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "chalktrainer",
+      storageBucket: "chalktrainer.firebasestorage.app",
+      messagingSenderId: "605519698736",
+      appId: "1:605519698736:web:3cf1479d263774081c46f5",
+      measurementId: "G-9XKPXNV8D9"
+    };
+
+    // Initialize Firebase
+    let app, database, analytics;
+    try {
+      app = initializeApp(firebaseConfig);
+      console.log("Firebase initialized:", app);
+      database = getDatabase(app);
+      console.log("Database connected:", database);
+      analytics = getAnalytics(app);
+      console.log("Analytics initialized:", analytics);
+    } catch (error) {
+      console.error("Firebase initialization failed:", error);
+      alert("Failed to initialize Firebase. Check console for details. Error: " + error.message);
+    }
+
     let currentScore = 501;
     let timeLeft = 0;
     let timerId = null;
@@ -122,7 +154,7 @@
     let dartboardImage = new Image();
     let difficulty = 'easy';
     let modeTimes = { easy: 65, medium: 40, hard: 25 };
-    let gameStartTime = 0;  // Initialize to 0
+    let gameStartTime = 0;
 
     const currentScoreSpan = document.getElementById('currentScore');
     const timerSpan = document.getElementById('timer');
@@ -163,20 +195,20 @@
 
     // Ring definitions based on provided coordinates (scaled from 800x800 to 450x450)
     const rings = {
-      bull: { min: 0, max: 7.5 },       // Bullseye: 0 to 7.5px
-      '25': { min: 7.5, max: 18.5 },    // Outer bull: 7.5 to 18.5px
-      singlesInner: { min: 18.5, max: 90 }, // Inner singles: between outer bull and treble
-      trebles: { min: 90, max: 105 },    // Trebles: around T20 at ~97.875px
-      singlesOuter: { min: 105, max: 150 }, // Outer singles: between treble and double
-      doubles: { min: 150, max: 165 }    // Doubles: around D20 at ~157.5px
+      bull: { min: 0, max: 7.5 },
+      '25': { min: 7.5, max: 18.5 },
+      singlesInner: { min: 18.5, max: 90 },
+      trebles: { min: 90, max: 105 },
+      singlesOuter: { min: 105, max: 150 },
+      doubles: { min: 150, max: 165 }
     };
 
     // Segment order (clockwise, starting at segment 20 at the top)
     const segmentOrder = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
 
     function getDartPosition(label) {
-      const centerX = canvas.width / 2;  // 225px
-      const centerY = canvas.height / 2; // 225px
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
 
       if (label === 'Bull') {
         const r = Math.random() * rings.bull.max;
@@ -196,15 +228,14 @@
           const prefix = match[1] ? match[1].toLowerCase() : '';
           const num = parseInt(match[2]);
           let ringKey = prefix === 't' ? 'trebles' : prefix === 'd' ? 'doubles' : 'singlesInner';
-          // Randomly place singles in inner or outer singles area
           if (!prefix) {
             ringKey = Math.random() < 0.5 ? 'singlesInner' : 'singlesOuter';
           }
           const ring = rings[ringKey];
           const segmentIndex = segmentOrder.indexOf(num);
           if (segmentIndex !== -1) {
-            const θ = segmentIndex * 18; // Angle in degrees, 0° at top (segment 20)
-            const φ = ((270 + θ) % 360) * Math.PI / 180; // Corrected to clockwise rotation
+            const θ = segmentIndex * 18;
+            const φ = ((270 + θ) % 360) * Math.PI / 180;
             const r = ring.min + Math.random() * (ring.max - ring.min);
             const x = centerX + r * Math.cos(φ);
             const y = centerY + r * Math.sin(φ);
@@ -212,7 +243,7 @@
           }
         }
       }
-      return { x: centerX, y: centerY }; // Fallback to center
+      return { x: centerX, y: centerY };
     }
 
     function drawDartboard() {
@@ -237,13 +268,17 @@
     }
 
     function startTurn() {
+      console.log("Starting turn...");
       if (timerId) clearInterval(timerId);
+      if (!difficultySelect || !timerSpan) {
+        console.error("DOM elements not found:", { difficultySelect, timerSpan });
+        return;
+      }
       difficulty = difficultySelect.value;
       timeLeft = modeTimes[difficulty];
       updateTimer();
       generateDarts();
       drawDartboard();
-      // Set gameStartTime only at the beginning of the game (when score is 501)
       if (currentScore === 501) {
         gameStartTime = Date.now();
       }
@@ -263,11 +298,12 @@
       } else {
         showTotalLabel.classList.remove('hidden');
       }
+      console.log("Turn started:", { difficulty, timeLeft });
     }
 
     function updateTimer() {
-      timerSpan.textContent = timeLeft + "s";
-      timerSpan.classList.toggle("red", timeLeft <= 0);
+      if (timerSpan) timerSpan.textContent = timeLeft + "s";
+      if (timerSpan) timerSpan.classList.toggle("red", timeLeft <= 0);
     }
 
     function submitScore() {
@@ -307,7 +343,7 @@
       if (timerId) clearInterval(timerId);
       drawDartboard();
       submissionForm.classList.add('hidden');
-      gameStartTime = 0;  // Reset gameStartTime
+      gameStartTime = 0;
     }
 
     function generateDarts() {
@@ -367,7 +403,12 @@
       return { label, value };
     }
 
+    // Save highscore to Firebase
     function submitHighScore() {
+      if (!database) {
+        alert("Firebase database not available. Please refresh the page or check your connection.");
+        return;
+      }
       const username = document.getElementById('username').value.trim();
       const country = document.getElementById('country').value;
       if (!username || !country) {
@@ -375,30 +416,58 @@
         return;
       }
       const timeTaken = Math.floor((Date.now() - gameStartTime) / 1000);
-      let scores = JSON.parse(localStorage.getItem('dartScores') || '{}');
-      if (!scores['hard']) scores['hard'] = [];
-      scores['hard'].push({ username, country, time: timeTaken, date: new Date().toISOString().split('T')[0] });
-      localStorage.setItem('dartScores', JSON.stringify(scores));
-      displayHighScores();
-      submissionForm.classList.add('hidden');
-      alert("Score submitted successfully!");
-      resetGame();
+      console.log("Submitting highscore:", { username, country, time: timeTaken });
+      database.ref('highscores').push({
+        username: username,
+        country: country,
+        time: timeTaken,
+        date: new Date().toISOString().split('T')[0]
+      }).then(() => {
+        console.log("Highscore saved successfully");
+        getHighscores();
+        submissionForm.classList.add('hidden');
+        alert("Score submitted successfully!");
+        resetGame();
+      }).catch(error => {
+        console.error("Error saving score:", error);
+        alert("Error saving score: " + error.message);
+      });
     }
 
-    function displayHighScores() {
-      let scores = JSON.parse(localStorage.getItem('dartScores') || '{}');
-      let today = new Date().toISOString().split('T')[0];
-      let mode = 'hard';
+    // Retrieve and display highscores from Firebase
+    function getHighscores() {
+      if (!database) {
+        console.error("Database not initialized");
+        return;
+      }
+      console.log("Fetching highscores...");
+      database.ref('highscores').orderByChild('time').limitToLast(10).once('value', snapshot => {
+        console.log("Highscores snapshot received:", snapshot.val());
+        const highscores = [];
+        snapshot.forEach(child => {
+          highscores.push(child.val());
+        });
+        highscores.sort((a, b) => a.time - b.time); // Sort by time (lowest first)
+        const dailyScores = highscores.filter(score => score.date === new Date().toISOString().split('T')[0]);
+        const allTimeScores = highscores.slice(0, 10);
+        displayHighscores(dailyScores, allTimeScores);
+      }).catch(error => {
+        console.error("Error fetching highscores:", error);
+      });
+    }
 
-      let modeScores = scores[mode] || [];
-      let dailyScores = modeScores.filter(score => score.date === today).sort((a, b) => a.time - b.time).slice(0, 10);
+    // Display highscores on the page
+    function displayHighscores(dailyScores, allTimeScores) {
       document.getElementById('dailyHard').innerHTML = dailyScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('');
-      let allTimeScores = modeScores.sort((a, b) => a.time - b.time).slice(0, 10);
       document.getElementById('allTimeHard').innerHTML = allTimeScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('');
     }
 
-    drawDartboard();
-    displayHighScores();
+    // Expose functions to global scope for onclick events
+    window.startTurn = startTurn;
+    window.submitScore = submitScore;
+    window.resetGame = resetGame;
+    window.submitHighScore = submitHighScore;
+    window.getHighscores = getHighscores;
   </script>
 </body>
 </html>
