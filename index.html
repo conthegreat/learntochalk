@@ -269,12 +269,7 @@
     }
 
     function startTurn() {
-      console.log("Starting turn...");
       if (timerId) clearInterval(timerId);
-      if (!difficultySelect || !timerSpan) {
-        console.error("DOM elements not found:", { difficultySelect, timerSpan });
-        return;
-      }
       difficulty = difficultySelect.value;
       timeLeft = modeTimes[difficulty];
       updateTimer();
@@ -299,12 +294,11 @@
       } else {
         showTotalLabel.classList.remove('hidden');
       }
-      console.log("Turn started:", { difficulty, timeLeft });
     }
 
     function updateTimer() {
-      if (timerSpan) timerSpan.textContent = timeLeft + "s";
-      if (timerSpan) timerSpan.classList.toggle("red", timeLeft <= 0);
+      timerSpan.textContent = timeLeft + "s";
+      timerSpan.classList.toggle("red", timeLeft <= 0);
     }
 
     function submitScore() {
@@ -428,7 +422,6 @@
         getHighscores();
         submissionForm.classList.add('hidden');
         alert("Score submitted successfully!");
-        // resetGame(); // Removed to allow continue option
       }).catch(error => {
         console.error("Error saving score:", error);
         alert("Error saving score: " + error.message);
