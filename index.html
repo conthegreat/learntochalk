@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Darts Chalking Trainer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #highScores {
+      width: 80%;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    #dailyHighs, #allTimeHighs {
+      width: 45%;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #dailyHighs h4, #allTimeHighs h4 {
+      margin: 5px 0;
+    }
+    #dailyHighs p, #allTimeHighs p {
+      margin: 2px 0;
+    }
+    #dartboard {
+      margin: 20px auto;
+      border: 2px solid #000;
+    }
+    #throws {
+      font-size: 1.5em;
+      margin-top: 10px;
+    }
+    .red { color: red; }
+    .hidden { display: none; }
+    button, input, select {
+      margin: 5px;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #mode {
+      width: 150px;
+    }
+    #controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #submissionForm {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="highScores">
+    <div id="dailyHighs">
+      <h3>Daily High Scores (Hard)</h3>
+      <div id="dailyHard"></div>
+    </div>
+    <div id="allTimeHighs">
+      <h3>All-Time High Scores (Hard)</h3>
+      <div id="allTimeHard"></div>
+    </div>
+  </div>
+  <h1>Darts Chalking Trainer</h1>
+  <div>
+    <strong>Current Score:</strong> <span id="currentScore">501</span><br />
+    <strong>Time Left:</strong> <span id="timer" class="red">0s</span>
+  </div>
+  <canvas id="dartboard" width="450" height="450"></canvas>
+  <div id="throws"></div>
+  <label id="showTotalLabel"><input type="checkbox" id="showTotal" checked> Show Total</label><br><br>
+  <input type="number" id="scoreInput" placeholder="Enter new score" />
+  <button onclick="submitScore()">Submit</button>
+  <div id="message" style="margin-top: 10px;"></div>
+  <br><br>
+  <div id="controls">
+    <label>Difficulty:
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </label>
+    <button onclick="startTurn()">Start Turn</button>
+    <button onclick="resetGame()">Reset Game</button>
+  </div>
+
+  <!-- Submission Form -->
+  <div id="submissionForm" class="hidden">
+    <h3>Submit Your Score</h3>
+    <input type="text" id="username" placeholder="Enter username" /><br>
+    <label for="country">Country:
+      <select id="country">
+        <!-- Countries will be populated dynamically -->
+      </select>
+    </label><br>
+    <button onclick="submitHighScore()">Submit</button>
+  </div>
+
+  <script>
+    let currentScore = 501;
+    let timeLeft = 0;
+    let timerId = null;
+    let dartsThrown = [];
+    let dartboardImage = new Image();
+    let difficulty = 'easy';
+    let modeTimes = { easy: 65, medium: 40, hard: 25 };
+    let gameStartTime = 0;  // Initialize to 0
+
+    const currentScoreSpan = document.getElementById('currentScore');
+    const timerSpan = document.getElementById('timer');
+    const throwsDiv = document.getElementById('throws');
+    const messageDiv = document.getElementById('message');
+    const canvas = document.getElementById('dartboard');
+    const ctx = canvas.getContext('2d');
+    const showTotalLabel = document.getElementById('showTotalLabel');
+    const showTotalCheckbox = document.getElementById('showTotal');
+    const difficultySelect = document.getElementById('difficulty');
+    const submissionForm = document.getElementById('submissionForm');
+    const countrySelect = document.getElementById('country');
+
+    // Load dartboard image
+    dartboardImage.src = 'https://www.reddragondarts.com/cdn/shop/files/blade6tc_pdc_-_image_1.jpg?v=1697463110&width=600';
+    dartboardImage.onload = function() {
+      drawDartboard();
+    };
+
+    // Country list with flags (emoji used for simplicity)
+    const countries = [
+      { name: "England", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+      { name: "Wales", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" },
+      { name: "Scotland", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+      { name: "Northern Ireland", flag: "🇬🇧" },
+      { name: "United States", flag: "🇺🇸" },
+      { name: "Canada", flag: "🇨🇦" },
+      { name: "Australia", flag: "🇦🇺" },
+    ];
+
+    // Populate country dropdown
+    countries.forEach(country => {
+      const option = document.createElement('option');
+      option.value = country.name;
+      option.textContent = `${country.flag} ${country.name}`;
+      countrySelect.appendChild(option);
+    });
+
+    // Ring definitions based on provided coordinates (scaled from 800x800 to 450x450)
+    const rings = {
+      bull: { min: 0, max: 7.5 },       // Bullseye: 0 to 7.5px
+      '25': { min: 7.5, max: 18.5 },    // Outer bull: 7.5 to 18.5px
+      singlesInner: { min: 18.5, max: 90 }, // Inner singles: between outer bull and treble
+      trebles: { min: 90, max: 105 },    // Trebles: around T20 at ~97.875px
+      singlesOuter: { min: 105, max: 150 }, // Outer singles: between treble and double
+      doubles: { min: 150, max: 165 }    // Doubles: around D20 at ~157.5px
+    };
+
+    // Segment order (clockwise, starting at segment 20 at the top)
+    const segmentOrder = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+
+    function getDartPosition(label) {
+      const centerX = canvas.width / 2;  // 225px
+      const centerY = canvas.height / 2; // 225px
+
+      if (label === 'Bull') {
+        const r = Math.random() * rings.bull.max;
+        const φ = Math.random() * 2 * Math.PI;
+        const x = centerX + r * Math.cos(φ);
+        const y = centerY + r * Math.sin(φ);
+        return { x, y };
+      } else if (label === '25') {
+        const r = rings['25'].min + Math.random() * (rings['25'].max - rings['25'].min);
+        const φ = Math.random() * 2 * Math.PI;
+        const x = centerX + r * Math.cos(φ);
+        const y = centerY + r * Math.sin(φ);
+        return { x, y };
+      } else {
+        const match = label.match(/([DT])?(\d+)/);
+        if (match) {
+          const prefix = match[1] ? match[1].toLowerCase() : '';
+          const num = parseInt(match[2]);
+          let ringKey = prefix === 't' ? 'trebles' : prefix === 'd' ? 'doubles' : 'singlesInner';
+          // Randomly place singles in inner or outer singles area
+          if (!prefix) {
+            ringKey = Math.random() < 0.5 ? 'singlesInner' : 'singlesOuter';
+          }
+          const ring = rings[ringKey];
+          const segmentIndex = segmentOrder.indexOf(num);
+          if (segmentIndex !== -1) {
+            const θ = segmentIndex * 18; // Angle in degrees, 0° at top (segment 20)
+            const φ = ((270 + θ) % 360) * Math.PI / 180; // Corrected to clockwise rotation
+            const r = ring.min + Math.random() * (ring.max - ring.min);
+            const x = centerX + r * Math.cos(φ);
+            const y = centerY + r * Math.sin(φ);
+            return { x, y };
+          }
+        }
+      }
+      return { x: centerX, y: centerY }; // Fallback to center
+    }
+
+    function drawDartboard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(dartboardImage, 0, 0, 450, 450);
+      dartsThrown.forEach((dart, i) => {
+        if (dart.label !== "No Score") {
+          const position = getDartPosition(dart.label);
+          drawDartMarker(position.x, position.y, i);
+        }
+      });
+    }
+
+    function drawDartMarker(x, y, index) {
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    function startTurn() {
+      if (timerId) clearInterval(timerId);
+      difficulty = difficultySelect.value;
+      timeLeft = modeTimes[difficulty];
+      updateTimer();
+      generateDarts();
+      drawDartboard();
+      // Set gameStartTime only at the beginning of the game (when score is 501)
+      if (currentScore === 501) {
+        gameStartTime = Date.now();
+      }
+      timerId = setInterval(() => {
+        timeLeft--;
+        updateTimer();
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          messageDiv.innerHTML = "⏱️ Time's up! Start a new turn.";
+          dartsThrown = [];
+          throwsDiv.innerHTML = "";
+          drawDartboard();
+        }
+      }, 1000);
+      if (difficulty === 'hard') {
+        showTotalLabel.classList.add('hidden');
+      } else {
+        showTotalLabel.classList.remove('hidden');
+      }
+    }
+
+    function updateTimer() {
+      timerSpan.textContent = timeLeft + "s";
+      timerSpan.classList.toggle("red", timeLeft <= 0);
+    }
+
+    function submitScore() {
+      const newScore = parseInt(document.getElementById('scoreInput').value);
+      if (isNaN(newScore) || newScore < 0 || newScore > currentScore) {
+        messageDiv.innerHTML = "<span class='red'>Invalid score!</span>";
+        return;
+      }
+      const thrownTotal = dartsThrown.reduce((sum, dart) => sum + dart.value, 0);
+      if (currentScore - thrownTotal !== newScore) {
+        messageDiv.innerHTML = "<span class='red'>Score doesn't match dart total!</span>";
+        return;
+      }
+      currentScore = newScore;
+      currentScoreSpan.textContent = currentScore;
+      document.getElementById('scoreInput').value = "";
+      messageDiv.innerHTML = currentScore === 0 ? "<strong>🎯 Checkout! Game Over!</strong>" : "";
+      if (currentScore === 0) {
+        clearInterval(timerId);
+        submissionForm.classList.remove('hidden');
+      } else {
+        dartsThrown = [];
+        throwsDiv.innerHTML = "";
+        startTurn();
+      }
+    }
+
+    function resetGame() {
+      currentScore = 501;
+      currentScoreSpan.textContent = currentScore;
+      timeLeft = 0;
+      updateTimer();
+      dartsThrown = [];
+      throwsDiv.innerHTML = "";
+      messageDiv.innerHTML = "";
+      document.getElementById('scoreInput').value = "";
+      if (timerId) clearInterval(timerId);
+      drawDartboard();
+      submissionForm.classList.add('hidden');
+      gameStartTime = 0;  // Reset gameStartTime
+    }
+
+    function generateDarts() {
+      dartsThrown = [];
+      let score = currentScore;
+      let total = 0;
+
+      for (let i = 0; i < 3 && score - total > 0; i++) {
+        const dart = getDartThrow(score - total);
+        total += dart.value;
+        dartsThrown.push(dart);
+        if (total > currentScore) {
+          dartsThrown = [];
+          total = 0;
+          break;
+        }
+      }
+
+      const showTotal = difficulty !== 'hard' && showTotalCheckbox.checked;
+      throwsDiv.innerHTML = `<strong>Dart Throws:</strong> ${dartsThrown.map(d => d.label).join(' ')}${
+        showTotal ? ` <br>(Total: ${dartsThrown.reduce((sum, d) => sum + d.value, 0)})` : ""
+      }`;
+    }
+
+    function getDartThrow(remaining) {
+      const doubles = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+      const singles = Array.from({ length: 20 }, (_, i) => i + 1);
+      const bull = { label: "Bull", value: 50 };
+      const outerBull = { label: "25", value: 25 };
+
+      if (remaining <= 60 && Math.random() > 0.7) {
+        if (remaining === 50) return bull;
+        if (remaining === 25) return outerBull;
+        if (remaining % 2 === 0 && remaining / 2 <= 20) {
+          return { label: "D" + (remaining / 2), value: remaining };
+        }
+      }
+
+      const rand = Math.random();
+      if (rand < 0.05) return bull;
+      if (rand < 0.15) return outerBull;
+
+      const base = singles[Math.floor(Math.random() * singles.length)];
+      const multiplier = Math.random();
+      let label = "", value = base;
+
+      if (multiplier < 0.1 && remaining >= base * 2) {
+        label = "D" + base;
+        value = base * 2;
+      } else if (multiplier < 0.3 && remaining >= base * 3) {
+        label = "T" + base;
+        value = base * 3;
+      } else {
+        label = base.toString();
+      }
+
+      return { label, value };
+    }
+
+    function submitHighScore() {
+      const username = document.getElementById('username').value.trim();
+      const country = document.getElementById('country').value;
+      if (!username || !country) {
+        alert("Please enter a username and select a country.");
+        return;
+      }
+      const timeTaken = Math.floor((Date.now() - gameStartTime) / 1000);
+      let scores = JSON.parse(localStorage.getItem('dartScores') || '{}');
+      if (!scores['hard']) scores['hard'] = [];
+      scores['hard'].push({ username, country, time: timeTaken, date: new Date().toISOString().split('T')[0] });
+      localStorage.setItem('dartScores', JSON.stringify(scores));
+      displayHighScores();
+      submissionForm.classList.add('hidden');
+      alert("Score submitted successfully!");
+      resetGame();
+    }
+
+    function displayHighScores() {
+      let scores = JSON.parse(localStorage.getItem('dartScores') || '{}');
+      let today = new Date().toISOString().split('T')[0];
+      let mode = 'hard';
+
+      let modeScores = scores[mode] || [];
+      let dailyScores = modeScores.filter(score => score.date === today).sort((a, b) => a.time - b.time).slice(0, 10);
+      document.getElementById('dailyHard').innerHTML = dailyScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('');
+      let allTimeScores = modeScores.sort((a, b) => a.time - b.time).slice(0, 10);
+      document.getElementById('allTimeHard').innerHTML = allTimeScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('');
+    }
+
+    drawDartboard();
+    displayHighScores();
+  </script>
+</body>
+</html>
