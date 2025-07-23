@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,9 +66,18 @@
       margin-left: auto;
       margin-right: auto;
     }
+    #highscore-status {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: gray;
+      margin: 10px auto;
+      cursor: help;
+    }
   </style>
 </head>
 <body>
+  <div id="highscore-status" title="Highscore connection status"></div>
   <div id="highScores">
     <div id="dailyHighs">
       <h3>Daily High Scores (Hard)</h3>
@@ -100,29 +110,22 @@
     </label>
     <button onclick="startTurn()">Start Turn</button>
     <button onclick="resetGame()">Reset Game</button>
+    <button onclick="testHighScore()">Test High Score</button>
   </div>
-
-  <!-- Submission Form -->
   <div id="submissionForm" class="hidden">
     <h3>Submit Your Score</h3>
     <input type="text" id="username" placeholder="Enter username" /><br>
     <label for="country">Country:
-      <select id="country">
-        <!-- Countries will be populated dynamically -->
-      </select>
+      <select id="country"></select>
     </label><br>
     <button onclick="submitHighScore()">Submit</button>
     <button onclick="continueGame()">Continue</button>
   </div>
-
-  <!-- Firebase SDK with ES Modules -->
   <script type="module">
-    // Import the functions you need from the SDKs you need
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
-    import { getDatabase } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-    // Your web app's Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyDTidIF53SjPRXHncIFy1bFWfbpmp1y6wc",
       authDomain: "chalktrainer.firebaseapp.com",
@@ -134,18 +137,41 @@
       measurementId: "G-9XKPXNV8D9"
     };
 
-    // Initialize Firebase
     let app, database, analytics;
     try {
       app = initializeApp(firebaseConfig);
-      console.log("Firebase initialized:", app);
       database = getDatabase(app);
-      console.log("Database connected:", database);
       analytics = getAnalytics(app);
-      console.log("Analytics initialized:", analytics);
     } catch (error) {
       console.error("Firebase initialization failed:", error);
-      alert("Failed to initialize Firebase. Check console for details. Error: " + error.message);
+      updateStatusButton(false);
+    }
+
+    if (database) {
+      const connectedRef = ref(database, '.info/connected');
+      onValue(connectedRef, (snapshot) => {
+        const connected = snapshot.val();
+        console.log('Connection status:', connected);
+        updateStatusButton(connected);
+      });
+
+      setInterval(() => {
+        const highscoresRef = ref(database, 'highscores');
+        get(highscoresRef).then(() => {
+          console.log('Periodic check: connected');
+          updateStatusButton(true);
+        }).catch((error) => {
+          console.error('Periodic check: disconnected', error);
+          updateStatusButton(false);
+        });
+      }, 5000);
+    } else {
+      updateStatusButton(false);
+    }
+
+    function updateStatusButton(connected) {
+      const statusButton = document.getElementById('highscore-status');
+      statusButton.style.backgroundColor = connected ? 'green' : 'red';
     }
 
     let currentScore = 501;
@@ -169,13 +195,11 @@
     const submissionForm = document.getElementById('submissionForm');
     const countrySelect = document.getElementById('country');
 
-    // Load dartboard image
     dartboardImage.src = 'https://www.reddragondarts.com/cdn/shop/files/blade6tc_pdc_-_image_1.jpg?v=1697463110&width=600';
     dartboardImage.onload = function() {
       drawDartboard();
     };
 
-    // Country list with flags (emoji used for simplicity)
     const countries = [
       { name: "England", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
       { name: "Wales", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" },
@@ -186,7 +210,6 @@
       { name: "Australia", flag: "🇦🇺" },
     ];
 
-    // Populate country dropdown
     countries.forEach(country => {
       const option = document.createElement('option');
       option.value = country.name;
@@ -194,7 +217,6 @@
       countrySelect.appendChild(option);
     });
 
-    // Ring definitions based on provided coordinates (scaled from 800x800 to 450x450)
     const rings = {
       bull: { min: 0, max: 7.5 },
       '25': { min: 7.5, max: 18.5 },
@@ -204,43 +226,33 @@
       doubles: { min: 150, max: 165 }
     };
 
-    // Segment order (clockwise, starting at segment 20 at the top)
     const segmentOrder = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
 
     function getDartPosition(label) {
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-
       if (label === 'Bull') {
         const r = Math.random() * rings.bull.max;
         const φ = Math.random() * 2 * Math.PI;
-        const x = centerX + r * Math.cos(φ);
-        const y = centerY + r * Math.sin(φ);
-        return { x, y };
+        return { x: centerX + r * Math.cos(φ), y: centerY + r * Math.sin(φ) };
       } else if (label === '25') {
         const r = rings['25'].min + Math.random() * (rings['25'].max - rings['25'].min);
         const φ = Math.random() * 2 * Math.PI;
-        const x = centerX + r * Math.cos(φ);
-        const y = centerY + r * Math.sin(φ);
-        return { x, y };
+        return { x: centerX + r * Math.cos(φ), y: centerY + r * Math.sin(φ) };
       } else {
         const match = label.match(/([DT])?(\d+)/);
         if (match) {
           const prefix = match[1] ? match[1].toLowerCase() : '';
           const num = parseInt(match[2]);
           let ringKey = prefix === 't' ? 'trebles' : prefix === 'd' ? 'doubles' : 'singlesInner';
-          if (!prefix) {
-            ringKey = Math.random() < 0.5 ? 'singlesInner' : 'singlesOuter';
-          }
+          if (!prefix) ringKey = Math.random() < 0.5 ? 'singlesInner' : 'singlesOuter';
           const ring = rings[ringKey];
           const segmentIndex = segmentOrder.indexOf(num);
           if (segmentIndex !== -1) {
             const θ = segmentIndex * 18;
             const φ = ((270 + θ) % 360) * Math.PI / 180;
             const r = ring.min + Math.random() * (ring.max - ring.min);
-            const x = centerX + r * Math.cos(φ);
-            const y = centerY + r * Math.sin(φ);
-            return { x, y };
+            return { x: centerX + r * Math.cos(φ), y: centerY + r * Math.sin(φ) };
           }
         }
       }
@@ -275,9 +287,7 @@
       updateTimer();
       generateDarts();
       drawDartboard();
-      if (currentScore === 501) {
-        gameStartTime = Date.now();
-      }
+      if (currentScore === 501) gameStartTime = Date.now();
       timerId = setInterval(() => {
         timeLeft--;
         updateTimer();
@@ -289,11 +299,7 @@
           drawDartboard();
         }
       }, 1000);
-      if (difficulty === 'hard') {
-        showTotalLabel.classList.add('hidden');
-      } else {
-        showTotalLabel.classList.remove('hidden');
-      }
+      showTotalLabel.classList.toggle('hidden', difficulty === 'hard');
     }
 
     function updateTimer() {
@@ -301,18 +307,36 @@
       timerSpan.classList.toggle("red", timeLeft <= 0);
     }
 
+    function calculateNewScore(currentScore, darts) {
+      let tempScore = currentScore;
+      for (const dart of darts) {
+        if (tempScore - dart.value < 0) {
+          return currentScore; // Bust
+        }
+        tempScore -= dart.value;
+        if (tempScore === 0) {
+          if (dart.label.startsWith('D') || dart.label === 'Bull') {
+            return 0; // Valid finish on double or bull
+          } else {
+            return currentScore; // Invalid finish, not on double or bull
+          }
+        }
+      }
+      return tempScore;
+    }
+
     function submitScore() {
-      const newScore = parseInt(document.getElementById('scoreInput').value);
-      if (isNaN(newScore) || newScore < 0 || newScore > currentScore) {
+      const enteredScore = parseInt(document.getElementById('scoreInput').value);
+      if (isNaN(enteredScore) || enteredScore < 0) {
         messageDiv.innerHTML = "<span class='red'>Invalid score!</span>";
         return;
       }
-      const thrownTotal = dartsThrown.reduce((sum, dart) => sum + dart.value, 0);
-      if (currentScore - thrownTotal !== newScore) {
-        messageDiv.innerHTML = "<span class='red'>Score doesn't match dart total!</span>";
+      const expectedScore = calculateNewScore(currentScore, dartsThrown);
+      if (enteredScore !== expectedScore) {
+        messageDiv.innerHTML = "<span class='red'>Incorrect score! Expected: " + expectedScore + "</span>";
         return;
       }
-      currentScore = newScore;
+      currentScore = expectedScore;
       currentScoreSpan.textContent = currentScore;
       document.getElementById('scoreInput').value = "";
       messageDiv.innerHTML = currentScore === 0 ? "<strong>🎯 Checkout! Game Over!</strong>" : "";
@@ -343,20 +367,31 @@
 
     function generateDarts() {
       dartsThrown = [];
-      let score = currentScore;
-      let total = 0;
-
-      for (let i = 0; i < 3 && score - total > 0; i++) {
-        const dart = getDartThrow(score - total);
-        total += dart.value;
+      let tempScore = currentScore;
+      for (let i = 0; i < 3; i++) {
+        if (tempScore <= 0) break;
+        const dart = getDartThrow(tempScore);
         dartsThrown.push(dart);
-        if (total > currentScore) {
-          dartsThrown = [];
-          total = 0;
+        tempScore -= dart.value;
+        if (tempScore < 0) {
+          dartsThrown.pop(); // Remove busting dart
+          break;
+        }
+        if (tempScore === 0 && (dart.label.startsWith('D') || dart.label === 'Bull')) {
+          break; // Valid finish
+        } else if (tempScore === 0) {
+          dartsThrown = []; // Invalid finish, reset
           break;
         }
       }
-
+      if (dartsThrown.length < 3 && tempScore > 0 && tempScore <= 60) {
+        // Try to add a finishing throw if possible
+        const finishDart = getFinishingThrow(tempScore);
+        if (finishDart) {
+          dartsThrown.push(finishDart);
+          tempScore -= finishDart.value;
+        }
+      }
       const showTotal = difficulty !== 'hard' && showTotalCheckbox.checked;
       throwsDiv.innerHTML = `<strong>Dart Throws:</strong> ${dartsThrown.map(d => d.label).join(' ')}${
         showTotal ? ` <br>(Total: ${dartsThrown.reduce((sum, d) => sum + d.value, 0)})` : ""
@@ -364,17 +399,13 @@
     }
 
     function getDartThrow(remaining) {
-      const doubles = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
       const singles = Array.from({ length: 20 }, (_, i) => i + 1);
       const bull = { label: "Bull", value: 50 };
       const outerBull = { label: "25", value: 25 };
 
-      if (remaining <= 60 && Math.random() > 0.7) {
-        if (remaining === 50) return bull;
-        if (remaining === 25) return outerBull;
-        if (remaining % 2 === 0 && remaining / 2 <= 20) {
-          return { label: "D" + (remaining / 2), value: remaining };
-        }
+      if (remaining <= 60 && Math.random() > 0.3) { // Increased chance for low scores
+        const finishDart = getFinishingThrow(remaining);
+        if (finishDart) return finishDart;
       }
 
       const rand = Math.random();
@@ -383,25 +414,27 @@
 
       const base = singles[Math.floor(Math.random() * singles.length)];
       const multiplier = Math.random();
-      let label = "", value = base;
-
+      let label = base.toString(), value = base;
       if (multiplier < 0.1 && remaining >= base * 2) {
         label = "D" + base;
         value = base * 2;
       } else if (multiplier < 0.3 && remaining >= base * 3) {
         label = "T" + base;
         value = base * 3;
-      } else {
-        label = base.toString();
       }
-
       return { label, value };
     }
 
-    // Save highscore to Firebase
+    function getFinishingThrow(remaining) {
+      if (remaining === 50) return { label: "Bull", value: 50 };
+      if (remaining === 25) return { label: "25", value: 25 };
+      if (remaining % 2 === 0 && remaining / 2 <= 20) return { label: "D" + (remaining / 2), value: remaining };
+      return null;
+    }
+
     function submitHighScore() {
-      if (!database) {
-        alert("Firebase database not available. Please refresh the page or check your connection.");
+      if (!database || typeof ref !== 'function') {
+        alert("Database not available. Please refresh the page.");
         return;
       }
       const username = document.getElementById('username').value.trim();
@@ -412,9 +445,9 @@
       }
       const timeTaken = Math.floor((Date.now() - gameStartTime) / 1000);
       console.log("Submitting highscore:", { username, country, time: timeTaken });
-      database.ref('highscores').push({
-        username: username,
-        country: country,
+      set(ref(database, 'highscores/' + Date.now()), {
+        username,
+        country,
         time: timeTaken,
         date: new Date().toISOString().split('T')[0]
       }).then(() => {
@@ -422,56 +455,82 @@
         getHighscores();
         submissionForm.classList.add('hidden');
         alert("Score submitted successfully!");
+        resetGame();
       }).catch(error => {
-        console.error("Error saving score:", error);
-        alert("Error saving score: " + error.message);
+        console.error("Error saving highscore:", error);
+        alert("Failed to save score: " + error.message);
       });
     }
 
-    // Retrieve and display highscores from Firebase
     function getHighscores() {
-      if (!database) {
+      if (!database || typeof ref !== 'function') {
         console.error("Database not initialized");
         return;
       }
       console.log("Fetching highscores...");
-      database.ref('highscores').orderByChild('time').limitToLast(10).once('value', snapshot => {
-        console.log("Highscores snapshot received:", snapshot.val());
+      get(ref(database, 'highscores')).then(snapshot => {
         const highscores = [];
-        snapshot.forEach(child => {
-          highscores.push(child.val());
-        });
-        highscores.sort((a, b) => a.time - b.time); // Sort by time (lowest first)
-        const dailyScores = highscores.filter(score => score.date === new Date().toISOString().split('T')[0]);
-        const allTimeScores = highscores.slice(0, 10);
+        const data = snapshot.val();
+        console.log("Highscores data:", data);
+        if (data) {
+          Object.values(data).forEach(item => highscores.push(item));
+        }
+        const today = new Date().toISOString().split('T')[0];
+        const dailyScores = highscores.filter(score => score.date === today)
+          .sort((a, b) => a.time - b.time);
+        const allTimeScores = highscores.sort((a, b) => a.time - b.time).slice(0, 10);
         displayHighscores(dailyScores, allTimeScores);
       }).catch(error => {
         console.error("Error fetching highscores:", error);
       });
     }
 
-    // Display highscores on the page
     function displayHighscores(dailyScores, allTimeScores) {
-      document.getElementById('dailyHard').innerHTML = dailyScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('');
-      document.getElementById('allTimeHard').innerHTML = allTimeScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('');
+      document.getElementById('dailyHard').innerHTML = dailyScores.length ?
+        dailyScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('') :
+        '<p>No scores today</p>';
+      document.getElementById('allTimeHard').innerHTML = allTimeScores.length ?
+        allTimeScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('') :
+        '<p>No scores yet</p>';
     }
 
-    // Continue game from current score
     function continueGame() {
       submissionForm.classList.add('hidden');
+      resetGame();
       startTurn();
     }
 
-    // Expose functions to global scope for onclick events
+    function testHighScore() {
+      if (!database || typeof ref !== 'function') {
+        alert("Database not available for testing.");
+        return;
+      }
+      const testData = {
+        username: "TestUser",
+        country: "England",
+        time: 120,
+        date: new Date().toISOString().split('T')[0]
+      };
+      set(ref(database, 'highscores/test_' + Date.now()), testData)
+        .then(() => {
+          alert("Test high score added successfully!");
+          getHighscores();
+        })
+        .catch(error => {
+          console.error("Test high score failed:", error);
+          alert("Failed to add test high score: " + error.message);
+        });
+    }
+
     window.startTurn = startTurn;
     window.submitScore = submitScore;
     window.resetGame = resetGame;
     window.submitHighScore = submitHighScore;
-    window.getHighscores = getHighscores;
     window.continueGame = continueGame;
+    window.testHighScore = testHighScore;
 
-    // Initial draw
     drawDartboard();
+    if (database) getHighscores();
   </script>
 </body>
 </html>
