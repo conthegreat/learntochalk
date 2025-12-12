@@ -361,14 +361,24 @@
       </div>
     </div>
 
-    <div id="highScores">
-      <div id="dailyHighs">
-        <h3><span>Daily High Scores (Hard)</span><span class="pill">today</span></h3>
-        <div id="dailyHard"></div>
+    <!-- Highscores drawer (collapsible) -->
+    <div class="panel" style="overflow:hidden;">
+      <div class="hd" style="cursor:pointer; user-select:none;" onclick="toggleHighscores()">
+        <h2>Highscores</h2>
+        <span class="pill" id="hsChevron">Show</span>
       </div>
-      <div id="allTimeHighs">
-        <h3><span>All-Time High Scores (Hard)</span><span class="pill">top 10</span></h3>
-        <div id="allTimeHard"></div>
+
+      <div id="highScoresWrap" class="hidden" style="padding: 14px 16px 16px;">
+        <div id="highScores" style="margin:0;">
+          <div id="dailyHighs">
+            <h3><span>Daily High Scores (Hard)</span><span class="pill">today</span></h3>
+            <div id="dailyHard"></div>
+          </div>
+          <div id="allTimeHighs">
+            <h3><span>All-Time High Scores (Hard)</span><span class="pill">top 10</span></h3>
+            <div id="allTimeHard"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -536,7 +546,7 @@
     const countrySelect = document.getElementById('country');
     const difficultyReadout = document.getElementById('difficultyReadout');
 
-    // ✅ FIX: reliable image host + error fallback so the board never "disappears"
+    // reliable image host + error fallback so the board never "disappears"
     const DARTBOARD_URL = "https://upload.wikimedia.org/wikipedia/commons/0/06/Dart_board.png";
     dartboardImage.crossOrigin = "anonymous";
     dartboardImage.src = DARTBOARD_URL;
@@ -614,7 +624,6 @@
       const cy = canvas.height / 2;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // simple visible fallback rings
       const radii = [220, 165, 150, 105, 90, 18.5, 7.5];
       ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -889,12 +898,22 @@
         .catch(error => alert("Failed to add test high score: " + error.message));
     }
 
+    // Highscore drawer toggle (added)
+    function toggleHighscores() {
+      const wrap = document.getElementById("highScoresWrap");
+      const chevron = document.getElementById("hsChevron");
+      const isHidden = wrap.classList.contains("hidden");
+      wrap.classList.toggle("hidden", !isHidden);
+      chevron.textContent = isHidden ? "Hide" : "Show";
+    }
+
     window.startTurn = startTurn;
     window.submitScore = submitScore;
     window.resetGame = resetGame;
     window.submitHighScore = submitHighScore;
     window.continueGame = continueGame;
     window.testHighScore = testHighScore;
+    window.toggleHighscores = toggleHighscores;
 
     drawDartboard();
     if (database) getHighscores();
