@@ -16,11 +16,8 @@
       --muted2: rgba(255,255,255,0.55);
       --accent: #7c5cff;
       --good: #28d17c;
-      --good2: rgba(40,209,124,0.25);
       --warn: #ffcc66;
-      --warn2: rgba(255,204,102,0.20);
       --bad: #ff4d4d;
-      --bad2: rgba(255,77,77,0.22);
       --shadow: 0 12px 30px rgba(0,0,0,0.35);
       --radius: 16px;
     }
@@ -76,7 +73,7 @@
       font-size: 13px;
     }
 
-    /* Connection pill (same element ID) */
+    /* Connection pill */
     #highscore-status{
       width: auto;
       height: auto;
@@ -141,12 +138,11 @@
 
     .stats{
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
+      margin-top: 6px;
     }
-    @media (max-width: 520px){
-      .stats{ grid-template-columns: 1fr; }
-    }
+
     .stat{
       background: var(--panel2);
       border: 1px solid rgba(255,255,255,0.10);
@@ -169,19 +165,18 @@
 
     /* Make timer obvious */
     .timerStat .v{
-      font-size: 28px;
+      font-size: 30px;
       letter-spacing: 0.4px;
     }
     #timer.warn{ color: var(--warn); }
     #timer.danger{ color: var(--bad); }
-    #timer.pulse{
-      animation: pulse 0.8s ease-in-out infinite;
-    }
+    #timer.pulse{ animation: pulse 0.8s ease-in-out infinite; }
     @keyframes pulse{
       0%{ transform: scale(1); }
-      50%{ transform: scale(1.04); }
+      50%{ transform: scale(1.05); }
       100%{ transform: scale(1); }
     }
+
     .timerBar{
       margin-top: 10px;
       height: 10px;
@@ -206,9 +201,10 @@
       border: 1px solid rgba(255,255,255,0.14);
       background: rgba(255,255,255,0.06);
       color: var(--muted);
+      white-space: nowrap;
     }
 
-    /* Canvas: force it to be visible and square on all layouts */
+    /* Canvas */
     #dartboard{
       display:block;
       width: min(520px, 100%);
@@ -218,7 +214,7 @@
       border: 1px solid rgba(255,255,255,0.18);
       box-shadow: 0 18px 50px rgba(0,0,0,0.35);
       background: rgba(0,0,0,0.18);
-      margin: 10px auto 0;
+      margin: 12px auto 0;
     }
 
     .controlsRow{
@@ -229,6 +225,9 @@
       justify-content: center;
       margin-top: 10px;
     }
+    .controlsRow.tight{ margin-top: 6px; }
+    .controlsRow.left{ justify-content: flex-start; }
+
     label{ color: var(--muted); font-size: 13px; }
     input, select, button{ font: inherit; }
 
@@ -239,10 +238,9 @@
       border-radius: 12px;
       padding: 10px 12px;
       outline: none;
-      min-height: 40px;
+      min-height: 44px;
     }
     input::placeholder{ color: rgba(255,255,255,0.45); }
-    select{ padding-right: 28px; }
 
     button{
       border: 1px solid rgba(255,255,255,0.16);
@@ -250,7 +248,7 @@
       color: var(--text);
       border-radius: 12px;
       padding: 10px 14px;
-      min-height: 40px;
+      min-height: 44px;
       cursor: pointer;
       transition: transform .05s ease, background .15s ease, border-color .15s ease;
     }
@@ -263,6 +261,7 @@
     .primary{
       background: linear-gradient(135deg, rgba(124,92,255,0.95), rgba(124,92,255,0.55));
       border-color: rgba(124,92,255,0.6);
+      font-weight: 700;
     }
     .danger{
       background: rgba(255,77,77,0.16);
@@ -270,8 +269,26 @@
     }
     .ghost{ background: rgba(255,255,255,0.06); }
 
+    /* Submit row */
+    .submitRow{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    @media (max-width: 520px){
+      .submitRow{
+        grid-template-columns: 1fr;
+      }
+      .submitRow button{
+        width: 100%;
+      }
+    }
+
+    /* Throws (moved to top section) */
     #throws{
-      margin-top: 12px;
+      margin-top: 10px;
       padding: 10px 12px;
       border-radius: 14px;
       border: 1px solid rgba(255,255,255,0.12);
@@ -279,18 +296,21 @@
       color: rgba(255,255,255,0.88);
       min-height: 44px;
     }
+
     #message{
       margin-top: 10px;
       color: rgba(255,255,255,0.9);
       min-height: 20px;
     }
     .red{ color: var(--bad); }
-    .hidden{ display: none; }
+    .hidden{ display: none !important; }
 
+    /* Highscores */
     #highScores{
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
+      margin-top: 10px;
     }
     @media (max-width: 720px){
       #highScores{ grid-template-columns: 1fr; }
@@ -359,6 +379,7 @@
       color: rgba(255,255,255,0.88);
     }
 
+    /* Show total helper row (only for easy/medium) */
     .toggle{
       display:flex;
       align-items:center;
@@ -374,6 +395,7 @@
       accent-color: var(--accent);
       cursor: pointer;
     }
+
     .footerHint{
       text-align:center;
       color: var(--muted2);
@@ -407,13 +429,25 @@
       </div>
 
       <div id="highScoresWrap" class="hidden" style="padding: 14px 16px 16px;">
-        <div id="highScores" style="margin:0;">
+        <div class="controlsRow left tight">
+          <label style="display:flex; gap:10px; align-items:center;">
+            Difficulty:
+            <select id="hsDifficulty">
+              <option value="hard">Hard</option>
+              <option value="medium">Medium</option>
+              <option value="easy">Easy</option>
+            </select>
+          </label>
+          <span class="pill" id="hsModePill">Hard</span>
+        </div>
+
+        <div id="highScores">
           <div id="dailyHighs">
-            <h3><span>Daily High Scores (Hard)</span><span class="pill">today</span></h3>
+            <h3><span>Daily High Scores</span><span class="pill">today</span></h3>
             <div id="dailyHard"></div>
           </div>
           <div id="allTimeHighs">
-            <h3><span>All-Time High Scores (Hard)</span><span class="pill">top 10</span></h3>
+            <h3><span>All-Time High Scores</span><span class="pill">top 10</span></h3>
             <div id="allTimeHard"></div>
           </div>
         </div>
@@ -426,45 +460,10 @@
           <h2>Live Turn</h2>
           <span class="pill">501 → Checkout</span>
         </div>
+
         <div class="bd">
-          <div class="stats">
-            <div class="stat">
-              <div class="k">Current Score</div>
-              <div class="v"><span id="currentScore">501</span></div>
-            </div>
-
-            <!-- Timer made more obvious + progress bar -->
-            <div class="stat timerStat">
-              <div class="k">Turn Timer</div>
-              <div class="v"><span id="timer" class="danger">0s</span></div>
-              <div class="timerBar" aria-hidden="true">
-                <div id="timerBarFill" class="timerBarFill"></div>
-              </div>
-            </div>
-
-            <div class="stat">
-              <div class="k">Difficulty</div>
-              <div class="v" id="difficultyReadout">Easy</div>
-            </div>
-          </div>
-
-          <canvas id="dartboard" width="450" height="450"></canvas>
-
-          <div id="throws"></div>
-
-          <div class="toggle" id="showTotalLabel">
-            <input type="checkbox" id="showTotal" checked>
-            <span>Show total of the 3 darts (not shown on Hard)</span>
-          </div>
-
-          <div class="controlsRow" style="margin-top: 12px;">
-            <input type="number" id="scoreInput" placeholder="Enter new score (after 3 darts)" inputmode="numeric" />
-            <button class="primary" onclick="submitScore()">Submit</button>
-          </div>
-
-          <div id="message"></div>
-
-          <div class="controlsRow" id="controls" style="margin-top: 12px;">
+          <!-- Difficulty + controls at top -->
+          <div class="controlsRow tight" style="margin-top:0;">
             <label>
               Difficulty:
               <select id="difficulty">
@@ -476,10 +475,43 @@
 
             <button class="ghost" onclick="startTurn()">Start Turn</button>
             <button class="danger" onclick="resetGame()">Reset Game</button>
-            <button onclick="testHighScore()">Test High Score</button>
           </div>
 
-          <div class="footerHint">Tip: in Hard mode, the “Show total” helper is hidden—like real chalking.</div>
+          <div class="stats">
+            <div class="stat">
+              <div class="k">Current Score</div>
+              <div class="v"><span id="currentScore">501</span></div>
+            </div>
+
+            <div class="stat timerStat">
+              <div class="k">Turn Timer</div>
+              <div class="v"><span id="timer" class="danger">0s</span></div>
+              <div class="timerBar" aria-hidden="true">
+                <div id="timerBarFill" class="timerBarFill"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dart throws moved up (so no scrolling on mobile) -->
+          <div id="throws"></div>
+
+          <!-- Only relevant for easy/medium; must not appear at all in Hard -->
+          <div class="toggle" id="showTotalLabel">
+            <input type="checkbox" id="showTotal" checked>
+            <span>Show total of the 3 darts</span>
+          </div>
+
+          <!-- Submit stays near score + throws -->
+          <div class="submitRow">
+            <input type="number" id="scoreInput" placeholder="Enter new score" inputmode="numeric" />
+            <button class="primary" onclick="submitScore()">✅ Submit Score</button>
+          </div>
+
+          <div id="message"></div>
+
+          <canvas id="dartboard" width="450" height="450"></canvas>
+
+          <div class="footerHint">Hard mode hides helpers and punishes mistakes (-3s).</div>
         </div>
       </div>
 
@@ -492,26 +524,26 @@
           <ul>
             <li>Click <b>Start Turn</b> to generate up to 3 dart throws for your current score.</li>
             <li>Mentally subtract the throws from the <b>Current Score</b> (normal 501 rules).</li>
-            <li>Type the <b>new score</b> into the box and press <b>Submit</b> before time runs out.</li>
+            <li>Type the <b>new score</b> and press <b>Submit Score</b> before time runs out.</li>
             <li><b>Bust rules:</b> if the score would go below 0, the score stays the same.</li>
             <li><b>Checkout:</b> you must finish on a <b>double</b> (D) or <b>Bull</b>.</li>
-            <li><b>Difficulty:</b> Easy gives more time and may show the total; Hard is fastest and hides the total helper.</li>
+            <li><b>Hard mode:</b> no “expected score” hints, and wrong answers cost <b>-3 seconds</b>.</li>
           </ul>
 
           <div class="note">
-            <b>Scoring goal:</b> Finish 501 as fast as possible. When you checkout, you can submit your time to the Hard leaderboard.
+            <b>Scoring goal:</b> Finish 501 as fast as possible. When you checkout, submit your time to the leaderboard for the chosen difficulty.
           </div>
 
           <div id="submissionForm" class="hidden" style="margin-top: 14px;">
-            <h3>Submit Your Score</h3>
-            <div class="controlsRow" style="justify-content:flex-start;">
+            <h3>Submit Your Time</h3>
+            <div class="controlsRow left" style="justify-content:flex-start;">
               <input type="text" id="username" placeholder="Enter username" />
               <label for="country" style="display:flex; align-items:center; gap:8px;">
                 Country:
                 <select id="country"></select>
               </label>
             </div>
-            <div class="controlsRow" style="justify-content:flex-start; margin-top: 8px;">
+            <div class="controlsRow left" style="justify-content:flex-start; margin-top: 8px;">
               <button class="primary" onclick="submitHighScore()">Submit</button>
               <button class="ghost" onclick="continueGame()">Continue</button>
             </div>
@@ -575,8 +607,11 @@
     let dartboardImage = new Image();
     let difficulty = 'easy';
     let modeTimes = { easy: 65, medium: 40, hard: 25 };
-    let turnDuration = 0; // for the progress bar
+    let turnDuration = 0;
     let gameStartTime = 0;
+    let finishedDifficulty = 'easy';
+
+    let highscoresCache = [];
 
     const currentScoreSpan = document.getElementById('currentScore');
     const timerSpan = document.getElementById('timer');
@@ -590,26 +625,29 @@
     const difficultySelect = document.getElementById('difficulty');
     const submissionForm = document.getElementById('submissionForm');
     const countrySelect = document.getElementById('country');
-    const difficultyReadout = document.getElementById('difficultyReadout');
+    const hsDifficultySelect = document.getElementById('hsDifficulty');
+    const hsModePill = document.getElementById('hsModePill');
 
-    // reliable image host + error fallback so the board never "disappears"
     const DARTBOARD_URL = "https://upload.wikimedia.org/wikipedia/commons/0/06/Dart_board.png";
     dartboardImage.crossOrigin = "anonymous";
     dartboardImage.src = DARTBOARD_URL;
 
-    dartboardImage.onload = function() {
-      drawDartboard();
-    };
+    dartboardImage.onload = function() { drawDartboard(); };
     dartboardImage.onerror = function() {
       console.warn("Dartboard image failed to load, using fallback board drawing.");
       messageDiv.innerHTML = "<span class='red'>Dartboard image failed to load — using fallback.</span>";
-      drawDartboard(); // will draw fallback
+      drawDartboard();
     };
 
+    // Fix flags (proper tag-sequence flags for England/Scotland/Wales)
+    const FLAG_ENGLAND  = "🏴\uE0067\uE0062\uE0065\uE006E\uE0067\uE007F";
+    const FLAG_SCOTLAND = "🏴\uE0067\uE0062\uE0073\uE0063\uE0074\uE007F";
+    const FLAG_WALES    = "🏴\uE0067\uE0062\uE0077\uE006C\uE0073\uE007F";
+
     const countries = [
-      { name: "England", flag: "🏴" },
-      { name: "Wales", flag: "🏴" },
-      { name: "Scotland", flag: "🏴" },
+      { name: "England", flag: FLAG_ENGLAND },
+      { name: "Wales", flag: FLAG_WALES },
+      { name: "Scotland", flag: FLAG_SCOTLAND },
       { name: "Northern Ireland", flag: "🇬🇧" },
       { name: "United States", flag: "🇺🇸" },
       { name: "Canada", flag: "🇨🇦" },
@@ -622,6 +660,20 @@
       option.textContent = `${country.flag} ${country.name}`;
       countrySelect.appendChild(option);
     });
+
+    function syncHelperVisibility() {
+      const val = difficultySelect.value;
+      showTotalLabel.classList.toggle('hidden', val === 'hard');
+      if (val === 'hard') showTotalCheckbox.checked = false;
+    }
+    difficultySelect.addEventListener('change', syncHelperVisibility);
+    syncHelperVisibility();
+
+    hsDifficultySelect.addEventListener('change', () => {
+      hsModePill.textContent = hsDifficultySelect.value.charAt(0).toUpperCase() + hsDifficultySelect.value.slice(1);
+      renderHighscores();
+    });
+    hsModePill.textContent = "Hard";
 
     const rings = {
       bull: { min: 0, max: 7.5 },
@@ -729,14 +781,19 @@
 
     function startTurn() {
       if (timerId) clearInterval(timerId);
+
       difficulty = difficultySelect.value;
-      difficultyReadout.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+      syncHelperVisibility();
+
       timeLeft = modeTimes[difficulty];
       turnDuration = timeLeft;
       updateTimer();
+
       generateDarts();
       drawDartboard();
+
       if (currentScore === 501) gameStartTime = Date.now();
+
       timerId = setInterval(() => {
         timeLeft--;
         updateTimer();
@@ -744,14 +801,12 @@
           endTurn("⏱️ Time's up! Start a new turn.");
         }
       }, 1000);
-      showTotalLabel.classList.toggle('hidden', difficulty === 'hard');
     }
 
     function updateTimer() {
       const safeTime = Math.max(0, timeLeft);
       timerSpan.textContent = safeTime + "s";
 
-      // urgency colours
       timerSpan.classList.remove("warn", "danger", "pulse");
       timerBarFill.classList.remove("warn", "danger");
 
@@ -763,7 +818,6 @@
         timerBarFill.classList.add("warn");
       }
 
-      // progress bar
       const denom = turnDuration > 0 ? turnDuration : 1;
       const pct = Math.max(0, Math.min(1, safeTime / denom));
       timerBarFill.style.width = (pct * 100).toFixed(1) + "%";
@@ -796,9 +850,7 @@
 
       const expectedScore = calculateNewScore(currentScore, dartsThrown);
 
-      // ✅ Improvement 1 + 2:
-      // - No expected score reveal
-      // - Wrong attempt = -3 seconds
+      // No expected reveal + wrong = -3s
       if (enteredScore !== expectedScore) {
         if (timerId && timeLeft > 0) {
           timeLeft -= 3;
@@ -817,16 +869,20 @@
       currentScore = expectedScore;
       currentScoreSpan.textContent = currentScore;
       document.getElementById('scoreInput').value = "";
-      messageDiv.innerHTML = currentScore === 0 ? "<strong>🎯 Checkout! Game Over!</strong>" : "";
+
       if (currentScore === 0) {
+        finishedDifficulty = difficulty;
+        messageDiv.innerHTML = "<strong>🎯 Checkout! Well done!</strong>";
         if (timerId) clearInterval(timerId);
         timerId = null;
         submissionForm.classList.remove('hidden');
-      } else {
-        dartsThrown = [];
-        throwsDiv.innerHTML = "";
-        startTurn();
+        return;
       }
+
+      messageDiv.innerHTML = "";
+      dartsThrown = [];
+      throwsDiv.innerHTML = "";
+      startTurn();
     }
 
     function resetGame() {
@@ -844,48 +900,45 @@
       drawDartboard();
       submissionForm.classList.add('hidden');
       gameStartTime = 0;
-      difficultyReadout.textContent = "Easy";
+      finishedDifficulty = difficultySelect.value;
+      syncHelperVisibility();
     }
 
     function generateDarts() {
       dartsThrown = [];
       let tempScore = currentScore;
+
       for (let i = 0; i < 3; i++) {
         if (tempScore <= 0) break;
+
         const dart = getDartThrow(tempScore);
         dartsThrown.push(dart);
+
         tempScore -= dart.value;
+
         if (tempScore < 0) {
-          dartsThrown.pop(); // Remove busting dart
+          dartsThrown.pop();
           break;
         }
+
         if (tempScore === 0 && (dart.label.startsWith('D') || dart.label === 'Bull')) {
-          break; // Valid finish
+          break;
         } else if (tempScore === 0) {
-          dartsThrown = []; // Invalid finish, reset
+          dartsThrown = [];
           break;
         }
       }
-      if (dartsThrown.length < 3 && tempScore > 0 && tempScore <= 60) {
-        const finishDart = getFinishingThrow(tempScore);
-        if (finishDart) {
-          dartsThrown.push(finishDart);
-          tempScore -= finishDart.value;
-        }
-      }
-      const showTotal = difficulty !== 'hard' && showTotalCheckbox.checked;
+
+      const showTotal = (difficulty !== 'hard') && showTotalCheckbox.checked;
       throwsDiv.innerHTML = `<strong>Dart Throws:</strong> ${dartsThrown.map(d => d.label).join(' ')}${
         showTotal ? ` <br>(Total: ${dartsThrown.reduce((sum, d) => sum + d.value, 0)})` : ""
       }`;
     }
 
-    // ===== Realistic pub-style throw model (mostly 20/19, mostly singles; checkout logic kicks in) =====
-
+    // ===== Pub-style throw model =====
     function neighbours(n) {
-      // return adjacent segments for 20 and 19 (enough for our miss model)
       if (n === 20) return [1, 5];
       if (n === 19) return [3, 7];
-      // fallback: find in segmentOrder
       const idx = segmentOrder.indexOf(n);
       if (idx === -1) return [n, n];
       const left = segmentOrder[(idx - 1 + segmentOrder.length) % segmentOrder.length];
@@ -899,37 +952,34 @@
 
     function sampleScoringThrowAim20() {
       const r = Math.random();
-      const [a, b] = neighbours(20); // 1 & 5
-      // Pub-level: mostly S20, some neighbours, occasional treble
-      if (r < 0.62) return single(20);
-      if (r < 0.74) return single(b); // S5
-      if (r < 0.86) return single(a); // S1
-      if (r < 0.95) return treble(20); // occasional T20
-      if (r < 0.975) return treble(b); // T5
-      if (r < 0.995) return treble(a); // T1
-      return dbl(20); // rare
+      const [a, b] = neighbours(20);
+      if (r < 0.66) return single(20);
+      if (r < 0.78) return single(b);
+      if (r < 0.90) return single(a);
+      if (r < 0.96) return treble(20);
+      if (r < 0.98) return treble(b);
+      if (r < 0.995) return treble(a);
+      return dbl(20);
     }
 
     function sampleScoringThrowAim19() {
       const r = Math.random();
-      const [a, b] = neighbours(19); // 3 & 7
-      if (r < 0.62) return single(19);
-      if (r < 0.74) return single(b); // S7
-      if (r < 0.86) return single(a); // S3
-      if (r < 0.95) return treble(19); // occasional T19
-      if (r < 0.975) return treble(b); // T7
-      if (r < 0.995) return treble(a); // T3
-      return dbl(19); // rare
+      const [a, b] = neighbours(19);
+      if (r < 0.66) return single(19);
+      if (r < 0.78) return single(b);
+      if (r < 0.90) return single(a);
+      if (r < 0.96) return treble(19);
+      if (r < 0.98) return treble(b);
+      if (r < 0.995) return treble(a);
+      return dbl(19);
     }
 
     function sampleCheckoutOutcome(dart) {
-      // Pub-level: miss doubles/bull fairly often
       if (dart.label === "Bull") {
         const r = Math.random();
         if (r < 0.35) return { label: "Bull", value: 50 };
         if (r < 0.78) return { label: "25", value: 25 };
         if (r < 0.92) return { label: "No Score", value: 0 };
-        // drift into a random single
         const n = 1 + Math.floor(Math.random() * 20);
         return { label: String(n), value: n };
       }
@@ -946,29 +996,25 @@
         const n = parseInt(dart.label.slice(1), 10);
         const [a, b] = neighbours(n);
         const r = Math.random();
-        if (r < 0.45) return dbl(n);          // hit the double
-        if (r < 0.80) return single(n);       // hit the single instead
-        if (r < 0.93) return single(Math.random() < 0.5 ? a : b); // drift to neighbour single
-        return { label: "No Score", value: 0 }; // miss outside
+        if (r < 0.45) return dbl(n);
+        if (r < 0.80) return single(n);
+        if (r < 0.93) return single(Math.random() < 0.5 ? a : b);
+        return { label: "No Score", value: 0 };
       }
 
       return dart;
     }
 
     function getDartThrow(remaining) {
-      // Checkout logic: if a simple finish exists, try it sometimes.
-      // (We still *apply* pub-level misses via sampleCheckoutOutcome)
       if (remaining <= 60 && Math.random() > 0.35) {
         const finishDart = getFinishingThrow(remaining);
         if (finishDart) return sampleCheckoutOutcome(finishDart);
       }
 
-      // Strategy: mostly aim at 20/19. Pub-level results: mostly singles.
       const rAim = Math.random();
       if (rAim < 0.70) return sampleScoringThrowAim20();
       if (rAim < 0.95) return sampleScoringThrowAim19();
 
-      // small human randomness: occasionally hit another big single
       const bigs = [18, 17, 16, 15, 14, 13];
       const pick = bigs[Math.floor(Math.random() * bigs.length)];
       return single(pick);
@@ -993,10 +1039,12 @@
         return;
       }
       const timeTaken = Math.floor((Date.now() - gameStartTime) / 1000);
+
       set(ref(database, 'highscores/' + Date.now()), {
         username,
         country,
         time: timeTaken,
+        difficulty: finishedDifficulty,
         date: new Date().toISOString().split('T')[0]
       }).then(() => {
         getHighscores();
@@ -1011,21 +1059,33 @@
     function getHighscores() {
       if (!database || typeof ref !== 'function') return;
       get(ref(database, 'highscores')).then(snapshot => {
-        const highscores = [];
         const data = snapshot.val();
-        if (data) Object.values(data).forEach(item => highscores.push(item));
-
-        const today = new Date().toISOString().split('T')[0];
-        const dailyScores = highscores.filter(score => score.date === today).sort((a, b) => a.time - b.time);
-        const allTimeScores = highscores.sort((a, b) => a.time - b.time).slice(0, 10);
-        displayHighscores(dailyScores, allTimeScores);
-      });
+        const arr = [];
+        if (data) {
+          Object.values(data).forEach(item => {
+            if (!item.difficulty) item.difficulty = "hard";
+            arr.push(item);
+          });
+        }
+        highscoresCache = arr;
+        renderHighscores();
+      }).catch(() => {});
     }
 
-    function displayHighscores(dailyScores, allTimeScores) {
+    function renderHighscores() {
+      const mode = hsDifficultySelect.value || "hard";
+      hsModePill.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+
+      const today = new Date().toISOString().split('T')[0];
+
+      const filtered = highscoresCache.filter(s => (s.difficulty || "hard") === mode);
+      const dailyScores = filtered.filter(score => score.date === today).sort((a, b) => a.time - b.time);
+      const allTimeScores = filtered.slice().sort((a, b) => a.time - b.time).slice(0, 10);
+
       document.getElementById('dailyHard').innerHTML = dailyScores.length ?
         dailyScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('') :
         '<p>No scores today</p>';
+
       document.getElementById('allTimeHard').innerHTML = allTimeScores.length ?
         allTimeScores.map(score => `<p>${score.username} (${score.country}): ${score.time}s</p>`).join('') :
         '<p>No scores yet</p>';
@@ -1037,26 +1097,6 @@
       startTurn();
     }
 
-    function testHighScore() {
-      if (!database || typeof ref !== 'function') {
-        alert("Database not available for testing.");
-        return;
-      }
-      const testData = {
-        username: "TestUser",
-        country: "England",
-        time: 120,
-        date: new Date().toISOString().split('T')[0]
-      };
-      set(ref(database, 'highscores/test_' + Date.now()), testData)
-        .then(() => {
-          alert("Test high score added successfully!");
-          getHighscores();
-        })
-        .catch(error => alert("Failed to add test high score: " + error.message));
-    }
-
-    // Highscore drawer toggle (added)
     function toggleHighscores() {
       const wrap = document.getElementById("highScoresWrap");
       const chevron = document.getElementById("hsChevron");
@@ -1070,7 +1110,6 @@
     window.resetGame = resetGame;
     window.submitHighScore = submitHighScore;
     window.continueGame = continueGame;
-    window.testHighScore = testHighScore;
     window.toggleHighscores = toggleHighscores;
 
     drawDartboard();
