@@ -16,7 +16,11 @@
       --muted2: rgba(255,255,255,0.55);
       --accent: #7c5cff;
       --good: #28d17c;
+      --good2: rgba(40,209,124,0.25);
+      --warn: #ffcc66;
+      --warn2: rgba(255,204,102,0.20);
       --bad: #ff4d4d;
+      --bad2: rgba(255,77,77,0.22);
       --shadow: 0 12px 30px rgba(0,0,0,0.35);
       --radius: 16px;
     }
@@ -154,13 +158,47 @@
       font-size: 12px;
       color: var(--muted2);
       margin-bottom: 6px;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
     }
     .stat .v{
       font-size: 20px;
       font-weight: 700;
       letter-spacing: 0.2px;
     }
-    #timer.red{ color: var(--bad); }
+
+    /* Make timer obvious */
+    .timerStat .v{
+      font-size: 28px;
+      letter-spacing: 0.4px;
+    }
+    #timer.warn{ color: var(--warn); }
+    #timer.danger{ color: var(--bad); }
+    #timer.pulse{
+      animation: pulse 0.8s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%{ transform: scale(1); }
+      50%{ transform: scale(1.04); }
+      100%{ transform: scale(1); }
+    }
+    .timerBar{
+      margin-top: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      overflow: hidden;
+    }
+    .timerBarFill{
+      height: 100%;
+      width: 0%;
+      background: var(--good);
+      transition: width 0.2s linear;
+    }
+    .timerBarFill.warn{ background: var(--warn); }
+    .timerBarFill.danger{ background: var(--bad); }
+
     .pill{
       font-size: 12px;
       padding: 6px 10px;
@@ -394,10 +432,16 @@
               <div class="k">Current Score</div>
               <div class="v"><span id="currentScore">501</span></div>
             </div>
-            <div class="stat">
-              <div class="k">Time Left</div>
-              <div class="v"><span id="timer" class="red">0s</span></div>
+
+            <!-- Timer made more obvious + progress bar -->
+            <div class="stat timerStat">
+              <div class="k">Turn Timer</div>
+              <div class="v"><span id="timer" class="danger">0s</span></div>
+              <div class="timerBar" aria-hidden="true">
+                <div id="timerBarFill" class="timerBarFill"></div>
+              </div>
             </div>
+
             <div class="stat">
               <div class="k">Difficulty</div>
               <div class="v" id="difficultyReadout">Easy</div>
@@ -531,10 +575,12 @@
     let dartboardImage = new Image();
     let difficulty = 'easy';
     let modeTimes = { easy: 65, medium: 40, hard: 25 };
+    let turnDuration = 0; // for the progress bar
     let gameStartTime = 0;
 
     const currentScoreSpan = document.getElementById('currentScore');
     const timerSpan = document.getElementById('timer');
+    const timerBarFill = document.getElementById('timerBarFill');
     const throwsDiv = document.getElementById('throws');
     const messageDiv = document.getElementById('message');
     const canvas = document.getElementById('dartboard');
@@ -670,11 +716,23 @@
       ctx.stroke();
     }
 
+    function endTurn(msg) {
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+      messageDiv.innerHTML = msg;
+      dartsThrown = [];
+      throwsDiv.innerHTML = "";
+      drawDartboard();
+      timeLeft = 0;
+      updateTimer();
+    }
+
     function startTurn() {
       if (timerId) clearInterval(timerId);
       difficulty = difficultySelect.value;
       difficultyReadout.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
       timeLeft = modeTimes[difficulty];
+      turnDuration = timeLeft;
       updateTimer();
       generateDarts();
       drawDartboard();
@@ -683,19 +741,32 @@
         timeLeft--;
         updateTimer();
         if (timeLeft <= 0) {
-          clearInterval(timerId);
-          messageDiv.innerHTML = "⏱️ Time's up! Start a new turn.";
-          dartsThrown = [];
-          throwsDiv.innerHTML = "";
-          drawDartboard();
+          endTurn("⏱️ Time's up! Start a new turn.");
         }
       }, 1000);
       showTotalLabel.classList.toggle('hidden', difficulty === 'hard');
     }
 
     function updateTimer() {
-      timerSpan.textContent = timeLeft + "s";
-      timerSpan.classList.toggle("red", timeLeft <= 0);
+      const safeTime = Math.max(0, timeLeft);
+      timerSpan.textContent = safeTime + "s";
+
+      // urgency colours
+      timerSpan.classList.remove("warn", "danger", "pulse");
+      timerBarFill.classList.remove("warn", "danger");
+
+      if (safeTime <= 5 && turnDuration > 0) {
+        timerSpan.classList.add("danger", "pulse");
+        timerBarFill.classList.add("danger");
+      } else if (safeTime <= 10 && turnDuration > 0) {
+        timerSpan.classList.add("warn");
+        timerBarFill.classList.add("warn");
+      }
+
+      // progress bar
+      const denom = turnDuration > 0 ? turnDuration : 1;
+      const pct = Math.max(0, Math.min(1, safeTime / denom));
+      timerBarFill.style.width = (pct * 100).toFixed(1) + "%";
     }
 
     function calculateNewScore(currentScore, darts) {
@@ -722,17 +793,34 @@
         messageDiv.innerHTML = "<span class='red'>Invalid score!</span>";
         return;
       }
+
       const expectedScore = calculateNewScore(currentScore, dartsThrown);
+
+      // ✅ Improvement 1 + 2:
+      // - No expected score reveal
+      // - Wrong attempt = -3 seconds
       if (enteredScore !== expectedScore) {
-        messageDiv.innerHTML = "<span class='red'>Incorrect score! Expected: " + expectedScore + "</span>";
+        if (timerId && timeLeft > 0) {
+          timeLeft -= 3;
+          updateTimer();
+          if (timeLeft <= 0) {
+            endTurn("⏱️ Time's up! Start a new turn.");
+            return;
+          }
+          messageDiv.innerHTML = "<span class='red'>Incorrect.</span> <span style='color: rgba(255,255,255,0.75)'>(-3s)</span>";
+        } else {
+          messageDiv.innerHTML = "<span class='red'>Incorrect.</span>";
+        }
         return;
       }
+
       currentScore = expectedScore;
       currentScoreSpan.textContent = currentScore;
       document.getElementById('scoreInput').value = "";
       messageDiv.innerHTML = currentScore === 0 ? "<strong>🎯 Checkout! Game Over!</strong>" : "";
       if (currentScore === 0) {
-        clearInterval(timerId);
+        if (timerId) clearInterval(timerId);
+        timerId = null;
         submissionForm.classList.remove('hidden');
       } else {
         dartsThrown = [];
@@ -745,12 +833,14 @@
       currentScore = 501;
       currentScoreSpan.textContent = currentScore;
       timeLeft = 0;
+      turnDuration = 0;
       updateTimer();
       dartsThrown = [];
       throwsDiv.innerHTML = "";
       messageDiv.innerHTML = "";
       document.getElementById('scoreInput').value = "";
       if (timerId) clearInterval(timerId);
+      timerId = null;
       drawDartboard();
       submissionForm.classList.add('hidden');
       gameStartTime = 0;
@@ -789,31 +879,99 @@
       }`;
     }
 
+    // ===== Realistic pub-style throw model (mostly 20/19, mostly singles; checkout logic kicks in) =====
+
+    function neighbours(n) {
+      // return adjacent segments for 20 and 19 (enough for our miss model)
+      if (n === 20) return [1, 5];
+      if (n === 19) return [3, 7];
+      // fallback: find in segmentOrder
+      const idx = segmentOrder.indexOf(n);
+      if (idx === -1) return [n, n];
+      const left = segmentOrder[(idx - 1 + segmentOrder.length) % segmentOrder.length];
+      const right = segmentOrder[(idx + 1) % segmentOrder.length];
+      return [left, right];
+    }
+
+    function single(n) { return { label: String(n), value: n }; }
+    function treble(n) { return { label: "T" + n, value: n * 3 }; }
+    function dbl(n) { return { label: "D" + n, value: n * 2 }; }
+
+    function sampleScoringThrowAim20() {
+      const r = Math.random();
+      const [a, b] = neighbours(20); // 1 & 5
+      // Pub-level: mostly S20, some neighbours, occasional treble
+      if (r < 0.62) return single(20);
+      if (r < 0.74) return single(b); // S5
+      if (r < 0.86) return single(a); // S1
+      if (r < 0.95) return treble(20); // occasional T20
+      if (r < 0.975) return treble(b); // T5
+      if (r < 0.995) return treble(a); // T1
+      return dbl(20); // rare
+    }
+
+    function sampleScoringThrowAim19() {
+      const r = Math.random();
+      const [a, b] = neighbours(19); // 3 & 7
+      if (r < 0.62) return single(19);
+      if (r < 0.74) return single(b); // S7
+      if (r < 0.86) return single(a); // S3
+      if (r < 0.95) return treble(19); // occasional T19
+      if (r < 0.975) return treble(b); // T7
+      if (r < 0.995) return treble(a); // T3
+      return dbl(19); // rare
+    }
+
+    function sampleCheckoutOutcome(dart) {
+      // Pub-level: miss doubles/bull fairly often
+      if (dart.label === "Bull") {
+        const r = Math.random();
+        if (r < 0.35) return { label: "Bull", value: 50 };
+        if (r < 0.78) return { label: "25", value: 25 };
+        if (r < 0.92) return { label: "No Score", value: 0 };
+        // drift into a random single
+        const n = 1 + Math.floor(Math.random() * 20);
+        return { label: String(n), value: n };
+      }
+
+      if (dart.label === "25") {
+        const r = Math.random();
+        if (r < 0.60) return { label: "25", value: 25 };
+        if (r < 0.85) return { label: "No Score", value: 0 };
+        const n = 1 + Math.floor(Math.random() * 20);
+        return { label: String(n), value: n };
+      }
+
+      if (dart.label.startsWith("D")) {
+        const n = parseInt(dart.label.slice(1), 10);
+        const [a, b] = neighbours(n);
+        const r = Math.random();
+        if (r < 0.45) return dbl(n);          // hit the double
+        if (r < 0.80) return single(n);       // hit the single instead
+        if (r < 0.93) return single(Math.random() < 0.5 ? a : b); // drift to neighbour single
+        return { label: "No Score", value: 0 }; // miss outside
+      }
+
+      return dart;
+    }
+
     function getDartThrow(remaining) {
-      const singles = Array.from({ length: 20 }, (_, i) => i + 1);
-      const bull = { label: "Bull", value: 50 };
-      const outerBull = { label: "25", value: 25 };
-
-      if (remaining <= 60 && Math.random() > 0.3) {
+      // Checkout logic: if a simple finish exists, try it sometimes.
+      // (We still *apply* pub-level misses via sampleCheckoutOutcome)
+      if (remaining <= 60 && Math.random() > 0.35) {
         const finishDart = getFinishingThrow(remaining);
-        if (finishDart) return finishDart;
+        if (finishDart) return sampleCheckoutOutcome(finishDart);
       }
 
-      const rand = Math.random();
-      if (rand < 0.05) return bull;
-      if (rand < 0.15) return outerBull;
+      // Strategy: mostly aim at 20/19. Pub-level results: mostly singles.
+      const rAim = Math.random();
+      if (rAim < 0.70) return sampleScoringThrowAim20();
+      if (rAim < 0.95) return sampleScoringThrowAim19();
 
-      const base = singles[Math.floor(Math.random() * singles.length)];
-      const multiplier = Math.random();
-      let label = base.toString(), value = base;
-      if (multiplier < 0.1 && remaining >= base * 2) {
-        label = "D" + base;
-        value = base * 2;
-      } else if (multiplier < 0.3 && remaining >= base * 3) {
-        label = "T" + base;
-        value = base * 3;
-      }
-      return { label, value };
+      // small human randomness: occasionally hit another big single
+      const bigs = [18, 17, 16, 15, 14, 13];
+      const pick = bigs[Math.floor(Math.random() * bigs.length)];
+      return single(pick);
     }
 
     function getFinishingThrow(remaining) {
@@ -916,6 +1074,7 @@
     window.toggleHighscores = toggleHighscores;
 
     drawDartboard();
+    updateTimer();
     if (database) getHighscores();
   </script>
 </body>
